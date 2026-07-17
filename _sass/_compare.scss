@@ -6,7 +6,7 @@
 // blocks (figures, code, block math) are emitted once and are not wrapped.
 //
 // EN prose keeps Distill's default styling; ZH prose gets a subtle tinted block
-// with a "中文" label so a reader can scan the EN/ZH pairing at a glance.
+// (left border + faint background) so a reader can scan the EN/ZH pairing.
 
 .src-en {
   // No special treatment: inherits Distill's reading-column typography.
@@ -19,19 +19,6 @@
   border-left: 3px solid var(--global-theme-color, #4a90d9);
   background-color: rgba(0, 0, 0, 0.025);
   border-radius: 0 4px 4px 0;
-
-  &::before {
-    content: "中文";
-    display: inline-block;
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: #fff;
-    background-color: var(--global-theme-color, #4a90d9);
-    padding: 0.06rem 0.4rem;
-    border-radius: 3px;
-    margin-right: 0.5rem;
-  }
 
   p {
     margin: 0.7em 0;
