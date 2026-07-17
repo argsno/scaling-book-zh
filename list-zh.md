@@ -1,6 +1,6 @@
 ---
 layout: page
-title: 列表
+title: 中文版
 nav: true
 nav_order: 10
 dropdown: true

@@ -12,11 +12,11 @@ sitemap: false
 
 section_number: 9
 
-previous_section_url: "../applied-inference"
-previous_section_name: "Part 8: Serving LLaMA"
+previous_section_url: "../applied-inference-zh"
+previous_section_name: "第 8 部分. 在 TPU 上部署服务 LLaMA 3-70B"
 
-next_section_url: ../jax-stuff
-next_section_name: "Part 10: JAX"
+next_section_url: "../jax-stuff-zh"
+next_section_name: "第 10 部分. 用 JAX 编写 TPU 程序"
 
 giscus_comments: true
 

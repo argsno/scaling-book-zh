@@ -14,11 +14,11 @@ hidden: false
 
 section_number: 2
 
-previous_section_url: "../roofline"
-previous_section_name: "Part 1: Rooflines"
+previous_section_url: "../roofline-zh"
+previous_section_name: "第 1 部分. 关于屋顶线分析"
 
-next_section_url: ../sharding
-next_section_name: "Part 3: Sharding"
+next_section_url: "../sharding-zh"
+next_section_name: "第 3 部分. 分片矩阵与分片矩阵乘法"
 
 bibliography: main.bib
 

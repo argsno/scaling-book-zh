@@ -9,8 +9,8 @@ hidden: false
 
 section_number: 12
 
-previous_section_url: "../conclusion"
-previous_section_name: "Part 11: Conclusion"
+previous_section_url: "../conclusion-zh"
+previous_section_name: "第 11 部分. 总结与延伸阅读"
 
 next_section_url:
 next_section_name: "The End"

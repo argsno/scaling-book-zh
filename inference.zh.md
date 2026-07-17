@@ -10,11 +10,11 @@ hidden: false
 
 section_number: 7
 
-previous_section_url: "../applied-training"
-previous_section_name: "Part 6: Training LLaMA"
+previous_section_url: "../applied-training-zh"
+previous_section_name: "第 6 部分. 在 TPU 上训练 LLaMA 3"
 
-next_section_url: ../applied-inference
-next_section_name: "Part 8: Serving LLaMA"
+next_section_url: "../applied-inference-zh"
+next_section_name: "第 8 部分. 在 TPU 上部署服务 LLaMA 3-70B"
 
 bibliography: main.bib
 

@@ -10,11 +10,11 @@ hidden: false
 
 section_number: 3
 
-previous_section_url: "../tpus"
-previous_section_name: "Part 2: TPUs"
+previous_section_url: "../tpus-zh"
+previous_section_name: "第 2 部分. 如何理解 TPU"
 
-next_section_url: ../transformers
-next_section_name: "Part 4: Transformer Math"
+next_section_url: "../transformers-zh"
+next_section_name: "第 4 部分. 你需要了解的 Transformer 数学"
 
 giscus_comments: true
 

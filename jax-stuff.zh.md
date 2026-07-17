@@ -10,11 +10,11 @@ hidden: false
 
 section_number: 10
 
-previous_section_url: "../profiling"
-previous_section_name: "Part 9: Profiling"
+previous_section_url: "../profiling-zh"
+previous_section_name: "第 9 部分. 如何理解 TPU 性能剖析"
 
-next_section_url: ../conclusion
-next_section_name: "Part 11: Conclusions"
+next_section_url: "../conclusion-zh"
+next_section_name: "第 11 部分. 总结与延伸阅读"
 
 permalink: /jax-stuff-zh/
 

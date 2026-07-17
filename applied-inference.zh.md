@@ -12,11 +12,11 @@ hidden: false
 
 section_number: 8
 
-previous_section_url: "../inference"
-previous_section_name: "Part 7: Inference"
+previous_section_url: "../inference-zh"
+previous_section_name: "第 7 部分. Transformer 推理全解"
 
-next_section_url: ../profiling
-next_section_name: "Part 9: Profiling"
+next_section_url: "../profiling-zh"
+next_section_name: "第 9 部分. 如何理解 TPU 性能剖析"
 
 giscus_comments: true
 

@@ -14,10 +14,10 @@ giscus_comments: true
 section_number: 0
 
 previous_section_url: ""
-previous_section_name: "Part 0: Intro"
+previous_section_name: "第 0 部分. 介绍"
 
-next_section_url: roofline
-next_section_name: "Part 1: Rooflines"
+next_section_url: "../roofline-zh"
+next_section_name: "第 1 部分. 关于屋顶线分析"
 
 bibliography: main.bib
 

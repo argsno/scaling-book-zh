@@ -10,11 +10,11 @@ hidden: false
 
 section_number: 1
 
-previous_section_url: ".."
-previous_section_name: "Part 0: Introduction"
+previous_section_url: "../index-zh"
+previous_section_name: "第 0 部分. 介绍"
 
-next_section_url: ../tpus
-next_section_name: "Part 2: TPUs"
+next_section_url: "../tpus-zh"
+next_section_name: "第 2 部分. 如何理解 TPU"
 
 bibliography: main.bib
 

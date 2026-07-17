@@ -12,11 +12,11 @@ hidden: false
 
 section_number: 11
 
-previous_section_url: "../jax-stuff"
-previous_section_name: "Part 10: JAX"
+previous_section_url: "../jax-stuff-zh"
+previous_section_name: "第 10 部分. 用 JAX 编写 TPU 程序"
 
-next_section_url: "../gpus"
-next_section_name: "Part 12: GPUs"
+next_section_url: "../gpus-zh"
+next_section_name: "第 12 部分. 如何理解 GPU"
 
 giscus_comments: true
 

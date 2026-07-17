@@ -10,11 +10,11 @@ hidden: false
 
 section_number: 6
 
-previous_section_url: "../training"
-previous_section_name: "Part 5: Training"
+previous_section_url: "../training-zh"
+previous_section_name: "第 5 部分. 如何对 Transformer 进行训练并行化"
 
-next_section_url: ../inference
-next_section_name: "Part 7: Inference"
+next_section_url: "../inference-zh"
+next_section_name: "第 7 部分. Transformer 推理全解"
 
 bibliography: main.bib
 

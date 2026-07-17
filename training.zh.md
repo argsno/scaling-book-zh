@@ -12,11 +12,11 @@ hidden: false
 
 section_number: 5
 
-previous_section_url: "../transformers"
-previous_section_name: "Part 4: Transformers"
+previous_section_url: "../transformers-zh"
+previous_section_name: "第 4 部分. 你需要了解的 Transformer 数学"
 
-next_section_url: ../applied-training
-next_section_name: "Part 6: Training LLaMA"
+next_section_url: "../applied-training-zh"
+next_section_name: "第 6 部分. 在 TPU 上训练 LLaMA 3"
 
 bibliography: main.bib
 

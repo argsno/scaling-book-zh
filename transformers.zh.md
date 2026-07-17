@@ -10,11 +10,11 @@ hidden: false
 
 section_number: 4
 
-previous_section_url: "../sharding"
-previous_section_name: "Part 3: Sharding"
+previous_section_url: "../sharding-zh"
+previous_section_name: "第 3 部分. 分片矩阵与分片矩阵乘法"
 
-next_section_url: ../training
-next_section_name: "Part 5: Training"
+next_section_url: "../training-zh"
+next_section_name: "第 5 部分. 如何对 Transformer 进行训练并行化"
 
 permalink: /transformers-zh/
 

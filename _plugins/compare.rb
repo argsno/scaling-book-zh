@@ -19,6 +19,20 @@ module Jekyll
   class CompareGenerator < Jekyll::Generator
     priority :low
 
+    # Turn an English sibling section URL into the equivalent URL for another
+    # edition. English sources use four shapes: "" (no sibling), ".." (root
+    # index), "../x" (sibling in parent dir) and the bare "x" used by the root
+    # index. Every compare page lives under /x-compare/, so the result is always
+    # "../<base>-<suffix>" (with "index" standing in for "..").
+    def localize_section_url(url, suffix)
+      return url if url.nil? || url.to_s.empty?
+
+      base = url.to_s
+      base = base.start_with?("../") ? base[3..] : base.sub(%r{\A\.\.?/?}, "")
+      base = "index" if base.empty?
+      "../#{base}-#{suffix}"
+    end
+
     def generate(site)
       targets = site.pages.select do |page|
         next false unless page.path.end_with?(".md")
@@ -52,6 +66,11 @@ module Jekyll
         page.data["autogen"] = true
         page.data["toc"] = false
         page.data["title"] = "#{en_page.data['title']} · 对照"
+        # Keep the bilingual "compare" view self-contained: rewrite the prev/next
+        # section links from the English siblings to the compare siblings, so the
+        # arrows/nav don't leak out to the English edition.
+        page.data["previous_section_url"] = localize_section_url(en_page.data["previous_section_url"], "compare")
+        page.data["next_section_url"] = localize_section_url(en_page.data["next_section_url"], "compare")
         # Bilingual intro: carry the (Chinese) ZH description alongside the EN one
         # so the compare page can render EN + ZH under the title. Skipped when the
         # ZH description hasn't been translated yet (equals the EN description).
