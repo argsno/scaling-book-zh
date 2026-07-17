@@ -63,7 +63,7 @@ toc:
 _styles: >
   .fake-img
   .fake-img p
-permalink: /index-zh/
+permalink: /
 sitemap: false
 ---
 

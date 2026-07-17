@@ -6,7 +6,7 @@ nav_order: 8
 dropdown: true
 children:
   - title: Part 0. Introduction
-    permalink: /index
+    permalink: /index-en
   - title: Part 1. Intro to Rooflines
     permalink: /roofline
   - title: Part 2. All About TPUs

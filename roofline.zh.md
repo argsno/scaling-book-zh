@@ -10,7 +10,7 @@ hidden: false
 
 section_number: 1
 
-previous_section_url: "../index-zh"
+previous_section_url: ".."
 previous_section_name: "第 0 部分. 介绍"
 
 next_section_url: "../tpus-zh"

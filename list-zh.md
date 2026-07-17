@@ -6,7 +6,7 @@ nav_order: 10
 dropdown: true
 children:
   - title: "第 0 部分. 介绍"
-    permalink: /index-zh
+    permalink: /
   - title: "第 1 部分. 关于屋顶线分析"
     permalink: /roofline-zh
   - title: "第 2 部分. 如何理解 TPU"
