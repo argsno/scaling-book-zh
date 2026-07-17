@@ -4,7 +4,7 @@ title: "Serving LLaMA 3-70B on TPUs（在 TPU 上部署服务 LLaMA 3-70B）"
 # permalink: /main/
 permalink: /applied-inference-zh/
 sitemap: false
-description: "Let's take a close look at how we'd serve LLaMA 3-70B models on TPU v5e. How expensive are different models to serve at roofline? How large are their KV caches? What batch sizes should we use? How are the parameters and activations sharded during inference? Let's work through some back-of-the-envelope estimates for latency and throughput in production."
+description: "我们一起来仔细看看，要如何在 TPU v5e 上部署 LLaMA 3-70B 模型。在不同模型处于屋顶线（roofline）约束下时，部署它们要花多大代价？它们的 KV cache 有多大？我们应该用多大的批大小？推理过程中参数与激活值是如何分片的？我们这就动手，对生产环境中的延迟与吞吐量做一些粗略的估算。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

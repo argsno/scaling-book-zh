@@ -3,7 +3,7 @@ layout: distill
 title: "How to Scale Your Model（如何扩展你的模型）"
 subtitle: "A Systems View of LLMs on TPUs"
 # permalink: /main/
-description: "Training LLMs often feels like alchemy, but understanding and optimizing the performance of your models doesn't have to. This book aims to demystify the science of scaling language models: how TPUs (and GPUs) work and how they communicate with each other, how LLMs run on real hardware, and how to parallelize your models during training and inference so they run efficiently at massive scale. If you've ever wondered \"how expensive should this LLM be to train\" or \"how much memory do I need to serve this model myself\" or \"what's an AllGather\", we hope this will be useful to you."
+description: "训练 LLM 常常像炼金术，但理解与优化模型的性能并不必如此。本书旨在揭开扩展语言模型这一科学的神秘面纱：TPU（以及 GPU）如何工作、它们之间如何通信，LLM 如何在真实硬件上运行，以及如何在训练与推理过程中对模型做并行化，使其在超大规模下高效运行。如果你曾好奇“训练这个 LLM 到底该花多大代价”“我自己部署这个模型需要多少内存”，或者“AllGather 到底是什么”，我们希望本书能对你有所帮助。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

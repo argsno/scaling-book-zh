@@ -52,6 +52,12 @@ module Jekyll
         page.data["autogen"] = true
         page.data["toc"] = false
         page.data["title"] = "#{en_page.data['title']} · 对照"
+        # Bilingual intro: carry the (Chinese) ZH description alongside the EN one
+        # so the compare page can render EN + ZH under the title. Skipped when the
+        # ZH description hasn't been translated yet (equals the EN description).
+        if zh_page.data["description"] && zh_page.data["description"] != en_page.data["description"]
+          page.data["description_zh"] = zh_page.data["description"]
+        end
         page.content = merged
 
         site.pages << page

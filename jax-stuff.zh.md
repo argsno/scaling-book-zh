@@ -2,7 +2,7 @@
 layout: distill
 title: "Programming TPUs in JAX（用 JAX 编写 TPU 程序）"
 # permalink: /main/
-description: "How to use JAX to program TPUs efficiently! Much of this section is taken from <a href='https://jax.readthedocs.io/en/latest/jep/14273-shard-map.html'>here</a>. You can run the code examples in this section with free TPUs on <a href='https://colab.sandbox.google.com/'>Google Colab</a>."
+description: "如何使用 JAX 高效地编写 TPU 程序！本节大部分内容改编自<a href='https://jax.readthedocs.io/en/latest/jep/14273-shard-map.html'>此处</a>。你可以借助 <a href='https://colab.sandbox.google.com/'>Google Colab</a> 上免费的 TPU，运行本节中的代码示例。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

@@ -4,7 +4,7 @@ title: "Conclusions and Further Reading（总结与延伸阅读）"
 permalink: /conclusion-zh/
 sitemap: false
 # permalink: /main/
-description: "Thank you for reading! Here we'll include a few more references for further study."
+description: "感谢你的阅读！在这里我们会再附上一些可供深入学习的参考资料。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

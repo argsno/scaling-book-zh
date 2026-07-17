@@ -2,7 +2,7 @@
 layout: distill
 title: "All About Transformer Inference（Transformer 推理全解）"
 permalink: /inference-zh/
-description: "Performing inference on a Transformer can be very different from training. Partly this is because inference adds a new factor to consider: latency. In this section, we will go all the way from sampling a single new token from a model to efficiently scaling a large Transformer across many slices of accelerators as part of an inference engine."
+description: "在 Transformer 上执行推理，可能与训练大相径庭。这部分是因为推理带来了一个需要考虑的新因素：延迟。在本节中，我们会从「从一个模型中采样出单个新词元」起步，一路讲到如何高效地把一个大型 Transformer 扩展到许多加速器切片之上，使其成为推理引擎的一部分。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

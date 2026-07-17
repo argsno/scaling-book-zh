@@ -1,7 +1,7 @@
 ---
 layout: distill
 title: "How to Think About GPUs（如何理解 GPU）"
-description: "We love TPUs at Google, but GPUs are great too. This chapter takes a deep dive into the world of GPUs – how each chip works, how they're networked together, and what that means for LLMs, especially compared to TPUs. While there are a multitude of GPU architectures from NVIDIA, AMD, Intel, and others, here we will focus on NVIDIA GPUs. This section builds on <a href='https://jax-ml.github.io/scaling-book/tpus/'>Chapter 2</a> and <a href='https://jax-ml.github.io/scaling-book/training'>Chapter 5</a>, so you are encouraged to read them first."
+description: "在 Google 我们钟爱 TPU，但 GPU 同样出色。本章将深入探索 GPU 的世界——每一颗芯片如何工作、它们如何通过网络互联，以及这一切对 LLM 意味着什么，尤其是与 TPU 相比时。尽管 NVIDIA、AMD、Intel 等厂商有众多 GPU 架构，本章将聚焦于 NVIDIA 的 GPU。本节建立在<a href='https://jax-ml.github.io/scaling-book/tpus/'>第 2 章</a>与<a href='https://jax-ml.github.io/scaling-book/training'>第 5 章</a>的基础之上，因此建议先阅读这两章。"
 date: 2025-08-18
 future: true
 htmlwidgets: true

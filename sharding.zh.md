@@ -2,7 +2,7 @@
 layout: distill
 title: "Sharded Matrices and How to Multiply Them（分片矩阵与分片矩阵乘法）"
 # permalink: /main/
-description: "When we train large ML models, we have to split (or \"shard\") their parameters or inputs across many accelerators. Since LLMs are mostly made up of matrix multiplications, understanding this boils down to understanding how to multiply matrices when they're split across devices. We develop a simple theory of sharded matrix multiplication based on the cost of TPU communication primitives."
+description: "当我们训练大型 ML 模型时，必须把它们的参数或输入拆分（或者说“分片”）到许多加速器上。由于 LLM 主要由矩阵乘法构成，理解这一点归根结底就是理解：当矩阵被拆分到不同设备上时，该如何做矩阵乘法。我们基于 TPU 通信原语的开销，建立起一套关于分片矩阵乘法的简明理论。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

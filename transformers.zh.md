@@ -2,7 +2,7 @@
 layout: distill
 title: "All the Transformer Math You Need to Know（你需要了解的 Transformer 数学）"
 # permalink: /main/
-description: "Here we'll do a quick review of the Transformer architecture, specifically how to calculate FLOPs, bytes, and other quantities of interest."
+description: "这里我们会对 Transformer 架构做一个快速回顾，具体聚焦于如何计算 FLOPs、字节数，以及其他我们关心的量。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

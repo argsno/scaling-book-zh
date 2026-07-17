@@ -4,7 +4,7 @@ title: "How to Parallelize a Transformer for Training（如何对 Transformer �
 permalink: /training-zh/
 sitemap: false
 # permalink: /main/
-description: "Here we discuss four main parallelism schemes used during LLM training: data parallelism, fully-sharded data parallelism (FSDP), tensor parallelism, and pipeline parallelism. For each, we calculate at what point we become bottlenecked by communication."
+description: "这里我们讨论 LLM 训练中使用的四种主要并行方案：数据并行、全分片数据并行（FSDP）、张量并行与流水线并行。对每一种，我们都会算出它在什么情况下会受到通信的瓶颈限制。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

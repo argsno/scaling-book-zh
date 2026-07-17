@@ -2,7 +2,7 @@
 layout: distill
 title: "Training LLaMA 3 on TPUs（在 TPU 上训练 LLaMA 3）"
 # permalink: /main/
-description: "Let's take a close look at how we'd train LLaMA 3 models on TPU v5p using what we've learned in the previous section. How big are they? How expensive is training in different configurations? How are they sharded? Let's work through some back-of-the-envelope estimates for how the previous sections map onto real models."
+description: "我们一起来仔细看看，要如何运用上一节学到的知识，在 TPU v5p 上训练 LLaMA 3 模型。这些模型有多大？在不同配置下训练要花多大代价？它们是如何分片的？我们这就动手，做一些粗略的估算，看看前面几节的内容如何映射到真实的模型上。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

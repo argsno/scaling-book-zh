@@ -4,7 +4,7 @@ title: "How to Think About TPUs（如何理解 TPU）"
 permalink: /tpus-zh/
 sitemap: false
 # permalink: /main/
-description: "This section is all about how TPUs work, how they're networked together to enable multi-chip training and inference, and how this affects the performance of our favorite algorithms. There's even some good stuff for GPU users too!"
+description: "本节全面讲解 TPU 如何工作、它们如何通过网络互联以实现多芯片的训练与推理，以及这一切如何影响我们最爱的算法的性能。即便你是 GPU 用户，也能在这里找到一些有用的内容！"
 date: 2025-02-04
 future: true
 htmlwidgets: true

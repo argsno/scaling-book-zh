@@ -2,7 +2,7 @@
 layout: distill
 title: "All About Rooflines（关于屋顶线分析）"
 permalink: /roofline-zh/
-description: "When we run algorithms on hardware, we're bounded by three things: how fast our computer can do math (OPs/second), the bandwidth available for moving data around (bytes/second), and the total memory available to store data (bytes). These \"roofline\" constraints let us upper and lower bound the time of a given computation."
+description: "当我们在硬件上运行算法时，会受到三件事的约束：计算机做数学运算的速度（OPs/秒）、搬运数据可用的带宽（字节/秒），以及用于存储数据的总内存容量（字节）。这些“屋顶线（roofline）”约束让我们能够对一次给定计算的耗时给出上下界。"
 date: 2025-02-04
 future: true
 htmlwidgets: true

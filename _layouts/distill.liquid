@@ -72,6 +72,7 @@
           href="{{ page.next_section_url }}">{{ page.next_section_name }}</a>)</p>
       {% endif %}
       <p>{{ page.description }}</p>
+      {% if page.description_zh %}<p class="src-zh">{{ page.description_zh }}</p>{% endif %}
     </d-title>
 
     {% if page.authors %}
