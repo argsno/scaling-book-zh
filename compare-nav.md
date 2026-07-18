@@ -5,30 +5,30 @@ nav: true
 nav_order: 9
 dropdown: true
 children:
-  - title: "index 对照"
+  - title: "Part 0. Introduction"
     permalink: /index-compare
-  - title: "roofline 对照"
+  - title: "Part 1. Intro to Rooflines"
     permalink: /roofline-compare
-  - title: "tpus 对照"
+  - title: "Part 2. All About TPUs"
     permalink: /tpus-compare
-  - title: "sharding 对照"
+  - title: "Part 3. Sharded Matmuls"
     permalink: /sharding-compare
-  - title: "transformers 对照"
+  - title: "Part 4. Transformers"
     permalink: /transformers-compare
-  - title: "training 对照"
+  - title: "Part 5. Training"
     permalink: /training-compare
-  - title: "applied-training 对照"
+  - title: "Part 6. Training LLaMA"
     permalink: /applied-training-compare
-  - title: "inference 对照"
+  - title: "Part 7. Inference"
     permalink: /inference-compare
-  - title: "applied-inference 对照"
+  - title: "Part 8. Serving LLaMA"
     permalink: /applied-inference-compare
-  - title: "profiling 对照"
+  - title: "Part 9. Profiling"
     permalink: /profiling-compare
-  - title: "jax-stuff 对照"
+  - title: "Part 10. All About JAX"
     permalink: /jax-stuff-compare
-  - title: "conclusion 对照"
+  - title: "Part 11. Conclusions"
     permalink: /conclusion-compare
-  - title: "gpus 对照"
+  - title: "Part 12. GPUs"
     permalink: /gpus-compare
 ---

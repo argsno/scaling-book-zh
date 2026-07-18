@@ -323,7 +323,7 @@ $$8192\ (T) \times 40\ (K) \times 128\ (H) \times 40\ (L) \times 2\ (\text{bytes
 
 **使用不规则 HBM 读取与分页注意力（Paged Attention）：** 在上面的计算中，我们为每个 KV cache 分配了 8k 的上下文，但通常没必要从内存读取整个 KV cache——请求的长度分布差异很大，并不会用满模型的最大上下文，因此我们通常可以实现一些 kernel（例如 Flash Attention 的变体），它们只读取 KV cache 中非填充的部分。
 
-分页注意力<d-cite key=”paged“></d-cite> 是对此的进一步完善，它以操作系统风格的页表存储 KV cache，并基本完全避免了 KV cache 的填充。这增加了很多复杂度，但意味着每个批次只使用它所需的那么多内存。这是一个运行时优化，因此同样与架构无关。
+分页注意力<d-cite key="paged"></d-cite> 是对此的进一步完善，它以操作系统风格的页表存储 KV cache，并基本完全避免了 KV cache 的填充。这增加了很多复杂度，但意味着每个批次只使用它所需的那么多内存。这是一个运行时优化，因此同样与架构无关。
 
 {% include figure.liquid path="assets/img/paged-attention.png" class="img-fluid img-small" caption="<b>Figure:</b> 在生成阶段，单个词元（“forth”）attend 到多个 KV cache 块/页。通过对 KV cache 分页，我们避免了加载或存储超出所需的内存。取自 <a href='https://arxiv.org/pdf/2309.06180'>PagedAttention 论文</a>。" %}
 
