@@ -101,7 +101,7 @@ B               & \textrm{[P M]} \\
 \end{array}
 $$
 
-- $$x \cdot y$$ 的点积需要 $$P$$ 次 _adds_ 和 _multiplies_，总共 $$2P$$ 次浮点运算。
+- $$x \cdot y$$ 的点积需要 $$P$$ 次 _加法_ 和 _乘法_，总共 $$2P$$ 次浮点运算。
 - 矩阵-向量乘积 $$Ax$$ 沿 $$A$$ 的各行做 $$N$$ 次点积，共 $$2NP$$ 次 FLOPs。
 - 矩阵-矩阵乘积 $$AB$$ 对 $$B$$ 的 $$M$$ 个列分别做一次矩阵-向量乘积，共 $$2NPM$$ 次 FLOPs。
 - 一般地，如果我们有两个高维数组 $$C$$ 和 $$D$$，其中某些维度是 <span style="color:red">CONTRACTING</span>，某些维度是 <span style="color:blue">BATCHING</span>（例如 $$C[\blue{GH}IJ\red{KL}], D[\blue{GH}MN\red{KL}]$$），那么该收缩的 FLOPs 代价是 $$C$$ 和 $$D$$ 所有维度的乘积的两倍，但批处理维度和收缩维度只计一次（例如 $$2\blue{GH}IJMN\red{KL}$$）。注意，一个维度只有当它同时出现在两个乘数中时才是批处理的。（另请注意，如果没有收缩维度、仅仅是按元素相乘，则系数 2 不适用。）<d-footnote><b>Contracting</b>（收缩）维度是在运算中被求和的轴（它们同时出现在两个输入中，但不在输出中），例如矩阵乘法中的内部维度。<b>Batching</b>（批处理）维度是同时出现在两个输入中、并原样传递到输出的共享轴；它们为相互独立的子问题建立索引，在 FLOPs 计数中不会被相乘。用 einsum 的术语来说：同时出现在两个输入和输出中的标签即为 batching；同时出现在两个输入中、但在输出中缺失的标签即为 contracting。</d-footnote>
@@ -151,7 +151,7 @@ Transformer 就是未来。好吧，至少它们已经是现在了。也许几�
 
 **注 [门控 einsum]**：上面的图使用了"[门控 einsum](https://arxiv.org/abs/2002.05202)"<d-cite key="glu"></d-cite>，我们将上投影矩阵拆分为两个矩阵（即上图中的 $W_\text{In1}$ 和 $W_\text{In2}$），它们的输出以逐元素相乘的方式作为一种"门控函数"。并非所有大语言模型都采用这种方式，所以你有时会看到一个单独的 $W_\text{In}$ 矩阵，此时 MLP 的总参数量为 2DF 而非 3DF。通常在这种情况下，D 和 F 会被相应放大，以使得参数量与三矩阵情形保持一致。尽管如此，LLaMA、DeepSeek 以及许多其他模型都采用了某种形式的门控 einsum。
 
-**注 2 [MHA 注意力]**：在自注意力中，T 和 S 是相同的，但在交叉注意力中它们可能不同。在原始的 Multi-Head Attention（MHA）中，N 和 K 相同；而在 [Multi-Query Attention](https://arxiv.org/abs/1911.02150)（MQA）<d-cite key="mqa"></d-cite> 中 K=1，在 [Grouped MQA](https://arxiv.org/abs/2305.13245)（GMQA）<d-cite key="gmqa"></d-cite> 中，K 只需能整除 N。
+**注 2 [MHA 注意力]**：在自注意力中，T 和 S 是相同的，但在交叉注意力中它们可能不同。在标准的 Multi-Head Attention（MHA）中，N 和 K 相同；而在 [Multi-Query Attention](https://arxiv.org/abs/1911.02150)（MQA）<d-cite key="mqa"></d-cite> 中 K=1，在 [Grouped MQA](https://arxiv.org/abs/2305.13245)（GMQA）<d-cite key="gmqa"></d-cite> 中，K 只需能整除 N。
 
 **注 3 [前置归一化 vs. 后置归一化]**：上图展示的是所谓的"前置归一化（pre-norm）"架构，其中归一化发生在残差连接之前，通常写作 `x + attn(norm(x))`。如今像 LLaMA-3 这样的模型就采用这种方式。原始的 Transformer 论文则采用了"后置归一化（post-norm）"架构，其中层归一化发生在残差连接之后，即 `norm(x + attn(x))`。
 
@@ -192,7 +192,7 @@ A[B,T,\red{N}, \red{H}] \cdot W_{O}[\red{N}, \red{H}, D] & 6BTDNH & DNH \\[10pt]
 \end{array}
 $$
 
-点积注意力运算更为微妙，它实质上是在 $$B$$、$$K$$ 维度上分块的 $$TH \cdot HS$$ matmul、一个 softmax，以及同样在 $$B$$、$$K$$ 维度上分块的 $$TS \cdot SH$$ matmul。我们用蓝色标出分块的维度：
+点积注意力运算更为微妙，它实质上是在 $$B$$、$$K$$ 维度上批处理的 $$TH \cdot HS$$ matmul、一个 softmax，以及同样在 $$B$$、$$K$$ 维度上批处理的 $$TS \cdot SH$$ matmul。我们用蓝色标出批处理维度：
 
 $$
 \begin{array}{cc}
@@ -255,7 +255,7 @@ $$\small{\frac{\textrm{attention FLOPs}}{\textrm{matmul FLOPs}} = \frac{12BT^2NH
 
 ### 梯度检查点 {#梯度检查点}
 
-反向传播作为一种算法，是以计算换取内存。前向传播不再需要 $$O(n_\text{layers}^2)$$ 次 FLOPs 的反向传播，而是**需要 $$O(n_\text{layers})$$ 的内存**，并保存前向传播中产生的所有中间激活值。虽然这比二次方的计算要好，但在内存方面代价极其高昂：对于一个 $$B * T=4M$$（每批次共 4M 个词元）、L=64、D=8192 的模型，如果要避免所有不必要的反向传播计算，就必须在 bfloat16 中保存大约 $$2 * 20 * B * T * D * L = 84TB$$ 的激活值。其中 20 大致来自对上图 Transformer 中每个中间节点的计数，例如：
+反向传播作为一种算法，是用内存换取计算。它不需要 $$O(n_\text{layers}^2)$$ 次 FLOPs 的反向传播，而是**需要 $$O(n_\text{layers})$$ 的内存**，保存前向传播过程中产生的所有中间激活值。虽然这比二次方的计算要好，但在内存方面代价极其高昂：对于一个 $$B * T=4M$$（每批次共 4M 个词元）、L=64、D=8192 的模型，如果要避免所有不必要的反向传播计算，就必须在 bfloat16 中保存大约 $$2 * 20 * B * T * D * L = 84TB$$ 的激活值。其中 20 大致来自对上图 Transformer 中每个中间节点的计数，例如：
 
 $$f(x) = \exp(g(x))$$
 
@@ -308,7 +308,7 @@ $$ -->
 
 **问题 1：** 一个 $D=4096$、$F=4 \cdot D$、$V=32,000$、$L=64$ 的模型有多少参数？其中注意力参数占多大比例？我们每个词元的 KV cache 有多大？*你可以假设 $N\cdot H=D$，并使用 int8 的 KV 多头注意力。*
 
-{% details Click here for the answer. %}
+{% details 点击查看答案 %}
 
 1. 总参数量大约为 $$L \cdot (3DF + 4DNH + 2D) + 2DV$$（计入每层的两次层归一化）。对于给定的数值，这是 $$64 \cdot (3 \cdot 4e3 \cdot 16e3 + 4 \cdot 4e3 \cdot 4e3 + 2 \cdot 4e3) + 2 \cdot 4e3 \cdot 32e3 = 16e9$$，即 16B 参数。
 2. 注意力参数与总参数之比一般为 $$4DNH / (4DNH + 3DF) = 4D^2 / (4D^2 + 12D^2) = 1/4$$。这意味着大约 1/4 的参数用于注意力。
@@ -318,15 +318,15 @@ $$ -->
 
 **问题 2：** 在 `{'X': 4, 'Y': 8, 'Z': 4}` 上执行 A[B<sub>X</sub>, D<sub>Y</sub>] \*<sub>D</sub> W[D<sub>Y</sub>, F] 需要多少总 FLOPs？每个 TPU 执行多少 FLOPs？
 
-{% details Click here for the answer. %}
+{% details 点击查看答案 %}
 
-该运算的总"理论"FLOPs 为 $$2 \cdot B \cdot D \cdot F$$。然而，由于计算并未沿 Z 维度分片，我们实际上多做了 Z 倍的 FLOPs，即总 FLOPs 为 $$2 \cdot B \cdot D \cdot F \cdot Z$$。由于计算沿其他维度分片，每个设备的总量大约为 $$2 \cdot B \cdot D \cdot F / (X \cdot  Y)$$。
+该运算的总"理论"FLOPs 为 $$2 \cdot B \cdot D \cdot F$$。然而，由于计算并未沿 Z 维度分片，我们实际做的 FLOPs 是原来的 Z 倍，即总 FLOPs 为 $$2 \cdot B \cdot D \cdot F \cdot Z$$。由于计算沿其他维度分片，每个设备的总量大约为 $$2 \cdot B \cdot D \cdot F / (X \cdot  Y)$$。
 
 {% enddetails %}
 
 **问题 3：** 执行 $A[I,J,K,L] * B[I,J,M,N,O] \rightarrow C[K,L,M,N,O]$ 涉及多少 FLOPs？
 
-{% details Click here for the answer. %}
+{% details 点击查看答案 %}
 
 根据上述规则，I 和 J 是收缩维度，K、L、M、N、O 是非收缩维度。我们没有"批处理维度"，因此这仅仅是 $$2 \cdot I \cdot J \cdot K \cdot L \cdot M \cdot N \cdot O$$，即所有轴的乘积。如果存在一个共享轴，它只会被计数一次。
 
@@ -334,7 +334,7 @@ $$ -->
 
 **问题 4：** 自注意力的算术强度是多少（忽略 Q/K/V/O 投影）？*请将答案表示为 Q 和 KV 长度 T 与 S 的函数。* 在什么上下文长度下注意力会受 FLOPs 限制（算力受限）？给定我们 TPU 的 HBM 带宽，请画出随着上下文长度增长，注意力相对于 FFW 块的有效相对代价。
 
-{% details Click here for the answer. %}
+{% details 点击查看答案 %}
 
 自注意力需要先加载 $$Q$$、$$K$$、$$V$$ 激活值，然后计算 $$\text{softmax}(Q \cdot K) \cdot V$$，再将结果写回 HBM。这会用 Flash Attention 来完成，因此这套计算存在一些注意事项，但基本上在 bf16 下自注意力执行的是
 
@@ -352,7 +352,7 @@ $$\text{U[B, T, S, K, G]} \cdot \text{V[B, S, K, H]} \rightarrow \text{X[B, T, K
 
 **问题 5：** 在多大的序列长度下，自注意力的 FLOPs 与 QKVO 投影的 FLOPs 相等？
 
-{% details Click here for the answer. %}
+{% details 点击查看答案 %}
 
 这纯粹是问 $$24BTDNH = 12BT^2NH$$ 何时成立。化简得到 $$2D = T$$，例如对于 $$D=4096$$，这就是 $$8192$$。这说明对于大多数合理的上下文长度，matmul 的 FLOPs 更大。
 
@@ -360,15 +360,15 @@ $$\text{U[B, T, S, K, G]} \cdot \text{V[B, S, K, H]} \rightarrow \text{X[B, T, K
 
 **问题 6：** 假设我们在前向传播中只保存 Transformer 层中 7 个主要 matmul 的输出（Q、K、V、O \+ 三个 FFW 矩阵）。我们在反向传播中需要额外"重计算（rematerialize）"多少 FLOPs？
 
-{% details Click here for the answer. %}
+{% details 点击查看答案 %}
 
 仅保存七个 matmul 的输出（Q、K、V、O、W₁、W₂、W₃）意味着反向传播必须重新计算两个注意力 matmul
 
 $$QK^{\top} \quad\text{and}\quad \operatorname{softmax}(QK^{\top})V$$
 
-in order to obtain $\frac{\partial L}{\partial W_\text{O}}$.
+以得到 $\frac{\partial L}{\partial W_\text{O}}$。
 
-每个都是在 $B$ 个序列和 $N$ 个头上分块的 $T \times T$ matmul，因此额外的 FLOPs 为
+每个都是在 $B$ 个序列和 $N$ 个头上批处理的 $T \times T$ matmul，因此额外的 FLOPs 为
 
 $$4 \; B \, T^{2} \, N \, H.$$
 
@@ -380,7 +380,7 @@ $$4 \; B \, T^{2} \, N \, H.$$
 
 **问题 7：** DeepSeek v3 宣称在 14.8T 个词元上训练了 2.79M 个 H800 小时（[来源](https://arxiv.org/pdf/2412.19437v1)）。已知其有 37B 个被激活的参数，他们大致达到了怎样的硬件利用率？*提示：注意他们使用的是不带结构化稀疏性的 FP8 FLOPs。*
 
-{% details Click here for the answer. %}
+{% details 点击查看答案 %}
 
 根据[这里](https://lenovopress.lenovo.com/lp1814.pdf) 的规格表，我们查到 FP8 性能在带稀疏性时为 3,026 TFLOPs/s，不带稀疏性时通常为其一半（`1.513e15` FLOPs/s）。2.79M 个 H800 小时意味着总 FLOPs 为 `2.79e6 * 1.513e15 * 60 * 60 = 1.52e25`。给定 37B 的激活参数量，这次训练本应使用大约 `6 * 37e9 * 14.8e12 = 3.3e24` 次 FLOPs。这意味着 FLOPs 利用率约为 `3.3e24 / 1.52e25 = 21.7%`。
 
@@ -388,7 +388,7 @@ $$4 \; B \, T^{2} \, N \, H.$$
 
 **问题 8：** 混合专家（MoE）模型拥有 $E$ 份标准稠密 MLP 块的副本，每个词元会激活其中 $k$ 个专家。对于在 TPU v5e 上、权重为 int8 的 MoE，要达到算力受限需要多少词元的批大小？对于拥有 256 个（路由）专家且 $k=8$ 的 DeepSeek，这个数值是多少？
 
-{% details Click here for the answer. %}
+{% details 点击查看答案 %}
 
 由于每个专家有 $E$ 份副本，在 int8 下，对于每个权重矩阵，我们需要加载 $E \cdot D \cdot F$ 字节。由于每个词元激活 $k$ 个专家，对于每个权重矩阵我们有 $2\cdot k \cdot B \cdot D \cdot F$ 次 FLOPs。要在 int8 权重和 bfloat16 FLOPs 下达到算力受限，我们需要算术强度（每加载 1 字节对应的 FLOPs）超过 TPU 约 240 FLOPs/字节的水平，这发生在 $(2\cdot k \cdot BDF) / EDF > 240$，即 $k \cdot B / E > 120$ 之时。
 
@@ -405,7 +405,7 @@ $$4 \; B \, T^{2} \, N \, H.$$
 将 Transformer 扩展到超长上下文的传统反对意见是：注意力的 FLOPs 和内存占用会随上下文长度呈二次方增长。虽然注意力 QK 乘积的形状确实为 $[B, T, S, N]$（其中 B 是批大小，T 和 S 是 Q 和 K 的序列维度，N 是头数），但这一说法伴随着一些重要的注意事项：
 
 1. 正如我们之前指出的，尽管这是二次方的，但注意力 FLOPs 只有在 $$T > 8 \cdot D$$ 时才会占主导；而且在训练时，单个注意力矩阵所占的内存相对于内存中所有权重和激活检查点而言很小，尤其是在分片之后。
-2. 为了计算注意力，我们并不需要具现化（materialize）完整的注意力矩阵！我们可以计算局部的求和与最大值，从而避免具现化超过数组的一小个分块。虽然总 FLOPs 仍是二次方的，但我们可以大幅降低内存压力。
+2. 为了计算注意力，我们并不需要物化（materialize）完整的注意力矩阵！我们可以计算局部的求和与最大值，从而避免物化超过数组的一小个分块。虽然总 FLOPs 仍是二次方的，但我们可以大幅降低内存压力。
 
 这第二个观察最早由 [Rabe 等人 2021](https://arxiv.org/abs/2112.05682) 提出，随后出现在 [Flash Attention 论文](https://arxiv.org/abs/2205.14135)（Dao 等人，2022）中。其基本思想是分块计算 K/V 上的注意力：我们先计算局部 softmax 和一些辅助统计量，再将它们传给下一个分块，由后者与自身的局部分块进行合并。具体而言，我们计算：
 

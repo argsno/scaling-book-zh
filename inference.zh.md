@@ -2,7 +2,7 @@
 layout: distill
 title: "All About Transformer Inference（Transformer 推理全解）"
 permalink: /inference-zh/
-description: "在 Transformer 上执行推理，可能与训练大相径庭。这部分是因为推理带来了一个需要考虑的新因素：延迟。在本节中，我们会从「从一个模型中采样出单个新词元」起步，一路讲到如何高效地把一个大型 Transformer 扩展到许多加速器切片之上，使其成为推理引擎的一部分。"
+description: "在 Transformer 上执行推理，可能与训练大相径庭。这部分是因为推理带来了一个需要考虑的新因素：延迟。在本节中，我们会从「自模型中采样出单个新词元」起步，一路讲到如何高效地把一个大型 Transformer 扩展到许多加速器切片之上，使其成为推理引擎的一部分。"
 date: 2025-02-04
 future: true
 htmlwidgets: true
@@ -77,8 +77,20 @@ toc:
 # This is used in the 'Layouts' section of this post.
 # If you use this post as a template, delete this _styles block.
 _styles: >
-  .fake-img
-  .fake-img p
+  .fake-img {
+    background: #bbb;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 12px;
+  }
+  .fake-img p {
+    font-family: monospace;
+    color: white;
+    text-align: left;
+    margin: 12px 0;
+    text-align: center;
+    font-size: 16px;
+  }
 ---
 
 ## Transformer 推理基础 {#transformer-推理基础}
@@ -185,7 +197,7 @@ $$S \gg T = 1 \implies \frac{ST}{S+T} \approx 1$$
 
 <p markdown=1 class="takeaway">**要点：** 在预填充阶段，对于任意合理的序列长度（大约 $\gt 480$ 个词元），注意力通常是算力受限的；而在生成阶段，我们的算术强度低且恒定，因此我们总是内存带宽受限的。</p>
 
-*从概念上讲，为什么会这样？* 主要是，我们在模型的线性部分算力受限，是因为参数（这些内存带宽密集的组件）被许多批次项复用。然而，每个批次项都有自己的 KV cache，所以更大的批大小意味着更多的 KV cache。除非架构被激进地调整，否则我们在这里几乎*总是*内存受限的。
+*从概念上讲，为什么会这样？* 主要原因在于，我们在模型的线性部分算力受限，是因为参数（这些内存带宽密集的组件）被许多批次项复用。然而，每个批次项都有自己的 KV cache，所以更大的批大小意味着更多的 KV cache。除非架构被激进地调整，否则我们在这里几乎*总是*内存受限的。
 
 这也意味着，一旦参数内存与 KV cache 内存相当，增加批大小带来的吞吐量收益就会递减。这种递减收益对你的伤害程度，取决于单个序列的参数字节数与 KV cache 字节数之比，即大致为比值 $2DF / SHK$。由于 $HK\approx D$，这大致取决于 $F$ 与 $S$（序列长度）之比。这也取决于能让 KV cache 变小（我们稍后会详述）的架构修改。
 
@@ -277,7 +289,7 @@ $$8192\ (T) \times 40\ (K) \times 128\ (H) \times 40\ (L) \times 2\ (\text{bytes
 
 ### 为 LLaMA 2-13B 建模吞吐量与延迟 {#为-llama-2-13b-建模吞吐量与延迟}
 
-让我们看看，如果在 8xTPU v5e 上、在不同的批大小下以完美效率执行生成，直到前面推导出的临界批大小（240）——即最大理论吞吐量——会发生什么。
+让我们看看，如果在 8xTPU v5e 上、在不同的批大小下以完美效率执行生成，一直到前面为最大理论吞吐量推导出的临界批大小（240），会发生什么。
 
 | 批大小                            |      1 |      8 |     16 |     32 |     64 |    240 |
 | :-------------------------------- | -----: | -----: | -----: | -----: | -----: | -----: |
@@ -313,7 +325,7 @@ $$8192\ (T) \times 40\ (K) \times 128\ (H) \times 40\ (L) \times 2\ (\text{bytes
 
 这也有效地提升了注意力计算的算术强度（见 [Section 4](../transformers) 的问题 4）。
 
-**混入一些局部注意力层：** 局部注意力把一个上下文限制在较小到中等的最大长度内。在训练时和预填充时，这涉及把注意力矩阵掩码成一个对角条带，而不是一个三角形。这有效地把局部层的 KV cache 最大长度封顶。通过在模型中混入一些局部层与一些全局层，在超过局部窗口长度的上下文上，KV cache 的大小被大幅减小。
+**混入一些局部注意力层：** 局部注意力将上下文限制在较小到中等的最大长度内。在训练时和预填充时，这涉及把注意力矩阵掩码成一个对角条带，而不是一个三角形。这有效地把局部层的 KV cache 最大长度封顶。通过在模型中混入一些局部层与一些全局层，在超过局部窗口长度的上下文上，KV cache 的大小被大幅减小。
 
 **跨层共享 KV：** 模型可以学会以某种模式在各层之间共享同一个 KV cache。虽然这确实减小了 KV cache 大小，并在增大批大小、缓存、离线存储等方面带来好处，但共享的 KV cache 可能需要从 HBM 多次读取，*所以它并不必然改善步时间。*
 
@@ -331,7 +343,7 @@ $$8192\ (T) \times 40\ (K) \times 128\ (H) \times 40\ (L) \times 2\ (\text{bytes
 
 ## 在多个加速器上分布推理 {#在多个加速器上分布推理}
 
-到目前为止，我们一直含糊地带过如何扩展到单颗芯片之外。遵循 [Section 5](../training)，让我们来探讨可用的不同策略及其权衡。和往常一样，我们会分别考察预填充和生成。
+到目前为止，我们一直粗略带过如何扩展到单颗芯片之外。遵循 [Section 5](../training)，让我们来探讨可用的不同策略及其权衡。和往常一样，我们会分别考察预填充和生成。
 
 ### 预填充 {#预填充}
 
@@ -346,9 +358,9 @@ $$8192\ (T) \times 40\ (K) \times 128\ (H) \times 40\ (L) \times 2\ (\text{bytes
 
 ### 生成 {#生成}
 
-生成是比预填充更复杂的猛兽。一方面，由于我们需要把许多请求批处理到一起，取得大批次更难。延迟目标也更低。综合起来，这意味着我们通常更内存受限，对通信开销更敏感，从而限制了我们的分片策略：
+生成是比预填充更复杂的存在。一方面，由于我们需要把许多请求批处理到一起，取得大批次更难。延迟目标也更低。综合起来，这意味着我们通常更内存受限，对通信开销更敏感，从而限制了我们的分片策略：
 
-1. **FSDP 不可能：** 由于我们在从 HBM 向 MXU 加载参数和 KV cache 时内存受限，我们不想通过 ICI 来移动它们，因为 ICI 比 HBM 慢几个数量级。*我们想移动激活值而不是权重。* 这意味着类似 FSDP 的方法通常对生成完全不可行。<d-footnote>在训练后 accidentally 把它开着，是一种常见的、能让性能退化一个数量级的错误</d-footnote>
+1. **FSDP 不可能：** 由于我们在从 HBM 向 MXU 加载参数和 KV cache 时内存受限，我们不想通过 ICI 来移动它们，因为 ICI 比 HBM 慢几个数量级。*我们想移动激活值而不是权重。* 这意味着类似 FSDP 的方法通常对生成完全不可行。<d-footnote>在训练后不小心把它开着，是一种常见的、能让性能退化一个数量级的错误</d-footnote>
 
 2. **没有理由做数据并行：** 纯数据并行没有帮助，因为它复制了我们的参数，又不能帮我们更快地加载参数。你最好另起模型的多个副本来跑。<d-footnote>我们的意思是，以更小的批大小另起多个带有模型副本的服务器。模型层级的数据并行严格更差。</d-footnote>
 
@@ -356,7 +368,7 @@ $$8192\ (T) \times 40\ (K) \times 128\ (H) \times 40\ (L) \times 2\ (\text{bytes
 
 _这基本上给我们留下了针对稠密模型生成的、模型分片的若干变体_。如同预填充，我们能做的最简单的事就是简单的模型并行（激活值完全复制，权重沿 MLP 的隐藏维度完全分片），直到我们变得 ICI 受限，达到 4-8 路。然而，由于我们常常内存带宽受限，我们实际上可以超越这个限制来改善延迟！
 
-**关于生成 ICI 边界的说明：** 在训练中我们想算力受限，所以我们的屋顶线看 ICI 通信何时比 FLOPs 更久。然而在生成时，如果我们因加载参数而内存带宽受限，我们就可以把模型分片做到这个点之外，并以最小的吞吐量代价（以词元/秒/芯片计）改善延迟。更多的模型分片给了我们更多 HBM 来加载权重，而我们的 FLOPs 无关紧要。<d-footnote>在这个意义上，FLOPs 时间并不构成瓶颈，所以我们需要担心的是 ICI 时间超过参数加载时间。</d-footnote> 让我们看看在做多少模型并行之前它会成为瓶颈。
+**关于生成 ICI 边界的说明：** 在训练中我们想算力受限，所以我们的屋顶线看 ICI 通信时间何时超过 FLOPs 时间。然而在生成时，如果我们因加载参数而内存带宽受限，我们就可以把模型分片做到这个点之外，并以最小的吞吐量代价（以词元/秒/芯片计）改善延迟。更多的模型分片给了我们更多 HBM 来加载权重，而我们的 FLOPs 无关紧要。<d-footnote>在这个意义上，FLOPs 时间并不构成瓶颈，所以我们需要担心的是 ICI 时间超过参数加载时间。</d-footnote> 让我们看看在做多少模型并行之前它会成为瓶颈。
 
 $$\begin{align*}T_\text{HBM comms} = \frac{2DF}{Y \cdot W_\text{hbm}} && T_\text{ICI comms} = \frac{2BD}{W_\text{ici}}\end{align*}$$
 
@@ -370,7 +382,7 @@ $$T_\text{ICI comms} > T_\text{HBM comms} \rightarrow \frac{W_\text{hbm}}{W_\tex
 
 ### 对 KV cache 分片 {#对-kv-cache-分片}
 
-**我们还有一个需要被分片的数据结构——KV cache。** 同样地，我们几乎总是倾向于避免复制这个 cache，因为它是注意力延迟的主要来源。为此，我们先沿头维度以 Megatron 方式对 KV 做分片。这限制为 $K$ 路分片，所以对于那些头数很少的模型，我们尽可能沿头维度分片，然后沿批次维度分片，即 $\text{KV}[2, B_Z, S, K_Y, H]$。这意味着 KV cache 被完全分布。
+**我们还有一个需要被分片的数据结构——KV cache。** 同样地，我们几乎总是倾向于避免复制这个 cache，因为它是注意力延迟的主要来源。为此，我们先沿头维度以 Megatron 方式对 KV 做分片。这被限制为 $K$ 路分片，所以对于那些头数很少的模型，我们尽可能沿头维度分片，然后沿批次维度分片，即 $\text{KV}[2, B_Z, S, K_Y, H]$。这意味着 KV cache 被完全分布式存储。
 
 {% include figure.liquid path="assets/img/esta-figure.png" class="img-fluid" caption="<b>Figure:</b> 注意力机制对比：（a）纯模型分片的多头注意力，与（b）对 KV cache 做批次分片的多查询注意力。注意我们需要两个额外的 AllToAll 来把激活值从模型分片切换到批次分片，这样它们才能作用于 KV cache。"%}
 
@@ -392,8 +404,8 @@ $$T_\text{ICI comms} > T_\text{HBM comms} \rightarrow \frac{W_\text{hbm}}{W_\tex
 8. O[B<sub>Z</sub>, K<sub>Y</sub>, M, H] = O[B<sub>Z</sub>, S, K<sub>Y</sub>, M] \*<sub>S</sub> V[B<sub>Z</sub>, S, K<sub>Y</sub>, H]
 9. O[B, K<sub>Y</sub>, M<sub>Z</sub>, H] = **AllToAll**<sub>Z->M</sub>(O[B<sub>Z</sub>, K<sub>Y</sub>, M, H])
 10. O[B, N<sub>YZ</sub>, H] = **Reshape**(O[B, K<sub>Y</sub>, M<sub>Z</sub>, H])
-11. X[B, D] = W<sub>O</sub>[N<sub>YZ</sub>, H, D] \*<sub>N,H</sub> O[B, N<sub>YZ</sub>, H]
-12. X[B, D] = **AllReduce**(X[B, D])
+11. X[B, D] {U<sub>YZ</sub>} = W<sub>O</sub>[N<sub>YZ</sub>, H, D] \*<sub>N,H</sub> O[B, N<sub>YZ</sub>, H]
+12. X[B, D] = **AllReduce**(X[B, D] { U<sub>YZ</sub> })
 
 这相当复杂，但你能大致看出它是怎么工作的。新的通信开销适中，因为它们作用在较小的激活值上；作为交换，我们节省了加载 KV（它们是静止的）的巨大内存带宽。
 
@@ -405,7 +417,7 @@ $$T_\text{ICI comms} > T_\text{HBM comms} \rightarrow \frac{W_\text{hbm}}{W_\tex
 
 ## 设计一个高效的推理引擎 {#设计一个高效的推理引擎}
 
-到目前为止，我们看了如何孤立地、高效地优化和分片单独的预填充与生成操作。要真正有效地使用它们，我们需要设计一个推理引擎，它能在延迟/吞吐量帕累托前沿上我们选定的某一点，喂饱这两个操作。
+到目前为止，我们看了如何孤立地、高效地优化和分片单独的预填充与生成操作。要真正有效地使用它们，我们需要设计一个推理引擎，它能在延迟/吞吐量帕累托前沿上我们选定的某一点，驱动这两个操作。
 
 最简单的方法就是先跑一批预填充，再跑一批生成：
 
@@ -413,9 +425,9 @@ $$T_\text{ICI comms} > T_\text{HBM comms} \rightarrow \frac{W_\text{hbm}}{W_\tex
 
 这容易实现，也是大多数代码库中的第一个推理设置，但它有多个缺点：
 
-1. **延迟糟糕。** 我们把预填充和生成的批大小耦合在一起。首词元延迟（TTFT）在大预填充批大小下很糟糕——你需要完成所有预填充，任何用户才能看到任何词元。生成吞吐量在小批大小下很糟糕。
+1. **延迟糟糕。** 我们把预填充和生成的批大小耦合在一起。首词元延迟（TTFT）在大预填充批大小下很糟糕——你需要完成所有预填充，用户才能看到词元。生成吞吐量在小批大小下很糟糕。
 2. **较短的生成被较长的生成所阻塞。** 许多序列会在其他序列之前完成，在生成期间留下空的批槽位，进一步伤害生成吞吐量。随着批大小和生成长度增加，问题加剧。
-3. **预填充被填充。** 预填充被填充到最长序列，浪费大量计算。对此有解决方案，但历史上 XLA 让跳过这些 FLOPs 相当困难。同样，批大小和预填充序列长度越大，这越糟。
+3. **预填充存在填充浪费。** 预填充被补齐到最长序列，浪费大量计算。对此有解决方案，但历史上 XLA 让跳过这些 FLOPs 相当困难。同样，批大小和预填充序列长度越大，这越糟。
 4. **我们被迫在预填充和生成之间共享分片。** 预填充和生成都运行在同一个切片上，这意味着我们对两者使用相同的拓扑和分片（除非你保留两份权重），这通常不利于性能，例如生成想要多得多的模型分片。
 
 因此，这个方法只推荐用于边缘应用（通常只关心服务单个用户，并使用每字节 FLOPs 更少的硬件）以及 Transformer 代码库生命周期早期的快速迭代（因其简单性）。
@@ -424,9 +436,9 @@ $$T_\text{ICI comms} > T_\text{HBM comms} \rightarrow \frac{W_\text{hbm}}{W_\tex
 
 {% include figure.liquid path="assets/img/interleaving.png" class="img-fluid" %}
 
-这会避免来自批量预填充的浪费 TTFT，同时保持高生成吞吐量。我们称之为**交错（interleaved）**配置，因为我们把预填充和生成步"交错"开来。这对于像评测这样以吞吐量为主要目标的大批量生成应用非常强大。编排器可以配置为：一旦有任何生成槽位空出来，就优先做预填充，从而即使对于非常大的生成批大小也能确保高利用率。我们也可以避免把预填充填充到最大长度，因为它并未与另一个请求批处理在一起。
+这会避免来自批量预填充的浪费 TTFT，同时保持高生成吞吐量。我们称之为**交错（interleaved）**配置，因为我们把预填充和生成步"交错"开来。这对于像评测这样以吞吐量为主要目标的大批量生成应用非常强大。编排器可以配置为：一旦有任何生成槽位空出来，就优先做预填充，从而即使对于非常大的生成批大小也能确保高利用率。我们也可以避免把预填充补齐到最大长度，因为它并未与另一个请求批处理在一起。
 
-主要的缺点是，当服务器在做预填充时，所有其他请求的生成都会暂停，因为所有计算资源都会被预填充消耗。用户 A 正在忙着解码的响应，会被正在做预填充的用户 B 阻塞。这意味着即使 TTFT 改善了，词元生成在平均上也会是抖动且缓慢的，这对许多应用而言不是好的用户体验——其他用户的预填充处于一个请求总体延迟的关键路径上。
+主要的缺点是，当服务器在做预填充时，所有其他请求的生成都会暂停，因为所有计算资源都会被预填充消耗。用户 A 的响应正在解码，会被正在做预填充的用户 B 阻塞。这意味着即使 TTFT 改善了，词元生成平均而言也会是抖动且缓慢的，这对许多应用而言不是好的用户体验——其他用户的预填充处于一个请求总体延迟的关键路径上。
 
 为了绕开这一点，我们把解码和预填充分离开来。虽然 Transformer 推理可以在一台服务器上完成，但从延迟角度看，把这两个不同任务放到两组 TPU/GPU 上执行通常更好。预填充服务器生成 KV cache，它们经网络发送给生成服务器，生成服务器把多个 cache 批处理到一起，并为它们各自生成词元。我们称之为 **"分离式（disaggregated）"**服务。
 
@@ -436,7 +448,7 @@ $$T_\text{ICI comms} > T_\text{HBM comms} \rightarrow \frac{W_\text{hbm}}{W_\tex
 
 1. **大规模下的低延迟**：一个用户的请求永远不会被另一个用户的请求阻塞，除非预填充容量不足。请求应该被立即预填充，然后发送给生成服务器，再立即被排入生成缓冲区。如果我们预期会有许多并发请求涌入，我们可以独立于生成服务器数量来扩展预填充服务器数量，这样用户就不会在预填充队列中滞留过长时间。
 
-2. **专精化（Specialization）：** 通常，预填充和生成在延迟最优的参数分片策略/硬件拓扑上相当不同（例如，更多模型并行对生成有用，但对预填充无用）。把两个操作限制为使用相同的分片会伤害两者的性能，而保留两份权重又会占用内存。此外，把预填充移到它自己的服务器上，它除了当前正在处理的那个 KV cache 之外，不需要持有任何 KV cache。这意味着我们有更多空闲内存可用于历史缓存（见下一节）或优化预填充延迟。
+2. **专精化（Specialization）：** 通常，预填充和生成在延迟最优的参数分片策略/硬件拓扑上相当不同（例如，更多模型并行对生成有用，但对预填充无用）。把两个操作限制为使用相同的分片会损害两者的性能，而保留两份权重又会占用内存。此外，把预填充移到它自己的服务器上，它除了当前正在处理的那个 KV cache 之外，不需要持有任何 KV cache。这意味着我们有更多空闲内存可用于历史缓存（见下一节）或优化预填充延迟。
 
 一个缺点是，KV cache 现在需要经网络传输。这通常可以接受，但也再次提供了减小 KV cache 大小的动机。
 
@@ -455,7 +467,7 @@ $$T_\text{ICI comms} > T_\text{HBM comms} \rightarrow \frac{W_\text{hbm}}{W_\tex
 
 ### 前缀缓存（Prefix caching） {#前缀缓存-prefix-caching}
 
-由于预填充昂贵且算力受限（留给我们的余量更小），降低其成本的最佳方法之一就是少做一点它。因为 LLM 是自回归的，查询 ["I", "like", "dogs"] 和 ["I", "like", "cats"] 产生的 KV cache 在前两个词元上是相同的。这意味着，原则上，如果我们先算 "I like dogs" 的 cache，再算 "I like cats" 的 cache，我们只需做 1/3 的计算。我们可以通过复用 cache 省下大部分工作。这在几个特定场景下特别强大：
+由于预填充昂贵且算力受限（留给我们的余量更小），降低其成本的最佳方法之一就是少做一些预填充。因为 LLM 是自回归的，查询 ["I", "like", "dogs"] 和 ["I", "like", "cats"] 产生的 KV cache 在前两个词元上是相同的。这意味着，原则上，如果我们先算 "I like dogs" 的 cache，再算 "I like cats" 的 cache，我们只需做 1/3 的计算。我们可以通过复用 cache 省下大部分工作。这在几个特定场景下特别强大：
 
 1. **聊天机器人**：大多数聊天机器人对话都涉及一来一回、严格向后追加的对话。这意味着如果我们能保存每一轮对话的 KV cache，我们就能跳过除最新词元之外的所有计算。
 2. **少样本提示（Few-shot prompting）：** 如果我们有任何少样本提示，它可以免费被保存和复用。系统指令通常也具有这种形式。
@@ -463,14 +475,14 @@ $$T_\text{ICI comms} > T_\text{HBM comms} \rightarrow \frac{W_\text{hbm}}{W_\tex
 这件事之所以难，唯一的原因是内存限制。正如我们所见，KV cache 很大（常常是好几个 GB），而且要让缓存有用，我们需要把它们保留到后续查询到来为止。通常，预填充服务器上任何未使用的 HBM 都可以用于一个本地缓存系统。此外，加速器在其 CPU 主机上通常有很大内存（例如一个 8xTPUv5e 服务器有 128GiB 的 HBM，但约有 450GiB 的主机 DRAM）。这块内存比 HBM 慢得多——通常慢到无法做生成步——但用于一次缓存读取则足够快。在实践中：
 
 * 由于 KV cache 对于处理初始请求的那组 TPU 来说是本地的，我们需要某种形式的亲和性路由，以确保后续查询到达同一个副本。这可能在负载均衡上引发问题。
-* 一个更小的 KV cache 有帮助（再次）——它让我们能在同样的空间里保存更多 KV cache，并减少读取时间。
+* 一个更小的 KV cache 会有帮助（再次）——它让我们能在同样的空间里保存更多 KV cache，并减少读取时间。
 * KV cache 及其查找可以相当自然地存储为一棵树或 trie。淘汰可以基于 LRU 进行。
 
 {% include figure.liquid path="assets/img/prefix-caching-trie.png" class="img-fluid" caption="<b>Figure:</b> 以 LRU trie 实现的 KV 前缀缓存。我们可以通过共享前缀来避免重复 KV 内存。来源：<a href='https://research.character.ai/optimizing-inference/?ref=blog.character.ai'>Character.ai 博客</a>。"%}
 
 ### 来看一个实现：JetStream {#来看一个实现-jetstream}
 
-Google 开源了一个实现这套逻辑的库，名为 [JetStream](https://github.com/google/JetStream)。该服务器有一组"预填充引擎"和"生成引擎"，通常在不同的 TPU 切片上，由一个单一的控制器编排。预填充发生在 "[预填充线程](https://github.com/AI-Hypercomputer/JetStream/blob/c0f83127c16d7861cacc560303a28404c6cbb24c/jetstream/core/orchestrator.py#L499)"，而生成发生在 "[生成线程](https://github.com/AI-Hypercomputer/JetStream/blob/c0f83127c16d7861cacc560303a28404c6cbb24c/jetstream/core/orchestrator.py#L629)"。我们还有一个 "[传输线程](https://github.com/AI-Hypercomputer/JetStream/blob/c0f83127c16d7861cacc560303a28404c6cbb24c/jetstream/core/orchestrator.py#L592)"，它负责编排把 KV cache 从预填充切片复制到生成切片。
+Google 开源了一个实现这套逻辑的库，名为 [JetStream](https://github.com/google/JetStream)。该服务器有一组"预填充引擎"和"生成引擎"，通常在不同的 TPU 切片上，由单一控制器编排。预填充发生在 "[预填充线程](https://github.com/AI-Hypercomputer/JetStream/blob/c0f83127c16d7861cacc560303a28404c6cbb24c/jetstream/core/orchestrator.py#L499)"，而生成发生在 "[生成线程](https://github.com/AI-Hypercomputer/JetStream/blob/c0f83127c16d7861cacc560303a28404c6cbb24c/jetstream/core/orchestrator.py#L629)"。我们还有一个 "[传输线程](https://github.com/AI-Hypercomputer/JetStream/blob/c0f83127c16d7861cacc560303a28404c6cbb24c/jetstream/core/orchestrator.py#L592)"，它负责编排 KV cache 从预填充切片到生成切片的复制。
 
 引擎接口（实现于 [此处](https://github.com/google/JetStream/blob/445f1aa8e857d0a09d72618e365daf80723bdf4c/jetstream/engine/engine_api.py#L138)）是任何 LLM 都必须提供的通用接口。关键方法有：
 
@@ -498,13 +510,13 @@ Google 开源了一个实现这套逻辑的库，名为 [JetStream](https://gith
 
 {% details 点击此处查看答案。 %}
 
-**参数计数：**
+**参数量：**
 
 * MLP 参数计数：$L * D * F * 3$
 * 注意力参数计数：$L * 2 * D * H * (N + K)$
 * 词表参数：$D * V$（因为我们共享这些矩阵）
 
-因此我们的总参数计数为 $L * D * (3F + 2H * (N + K)) + D * V$。代入上面的数字，我们有 `64 * 4096 * (3*16384 + 2 * 256 * (32 + 8)) + 4096 * 32128 = 18.4e9`。因此，这个模型约有 184 亿参数。
+因此我们的总参数量为 $L * D * (3F + 2H * (N + K)) + D * V$。代入上面的数字，我们有 `64 * 4096 * (3*16384 + 2 * 256 * (32 + 8)) + 4096 * 32128 = 18.4e9`。因此，这个模型约有 184 亿参数。
 
 KV cache 每个词元在 int8 下为 $2 * L * K * H$，即 `2 * 64 * 8 * 256 = 262kB` 每词元。
 
@@ -558,17 +570,17 @@ KV cache 每个词元在 int8 下为 $2 * L * K * H$，即 `2 * 64 * 8 * 256 = 2
 1. 在上面 Y=8、Z=16 的 TPU v5e 8x16 切片上，该模型的 HBM 权重加载时间是多少？每颗 TPU 可用多少空闲 HBM？
 2. 我们能把这个模型塞下的最小切片是多大？
 
-**问题 7 [2D 模型分片]：** 这里我们将推导 [ESTI 论文](https://arxiv.org/pdf/2211.05102) 所称 2D 权重静止（weight-stationary）分片的数学。我们在附录 B 中简要描述了它，但先试着做这道题，看看你能否推导出其中的数学。2D 权重静止分片的基本思想是沿 $D$ 和 $F$ 两个轴都对权重分片，使每个分块大致是正方形。这减少了通信负载，并让我们能稍微扩展得更远。
+**问题 7 [2D 模型分片]：** 这里我们将推导 [ESTI 论文](https://arxiv.org/pdf/2211.05102) 所称的 2D 权重静止（weight-stationary）分片的数学。我们在附录 B 中简要描述了它，但先试着做这道题，看看你能否推导出其中的数学。2D 权重静止分片的基本思想是沿 $D$ 和 $F$ 两个轴都对权重分片，使每个分块大致是正方形。这减少了通信负载，并让我们能稍微扩展得更远。
 
 下面是 2D 权重静止的算法：
 
 <div markdown=1 class="algorithm">
 
 1.  In[B, D<sub>X</sub>] = **AllGather**<sub>YZ</sub>(In[B, D<sub>XYZ</sub>])
-2.  Tmp[B, F<sub>YZ</sub>] = In[B, D<sub>X</sub>] \*<sub>D</sub> W<sub>in</sub>[D<sub>X</sub>, F<sub>YZ</sub>]
-3.  Tmp[B, F<sub>YZ</sub>] = **AllReduce**<sub>X</sub>(Tmp[B, F<sub>YZ</sub>])
-4.  Out[B, D<sub>X</sub>] = Tmp[B, F<sub>YZ</sub>] \*<sub>F</sub> W<sub>out</sub>[F<sub>YZ</sub>, D<sub>X</sub>]
-5.  Out[B, D<sub>XYZ</sub>] = **ReduceScatter**<sub>YZ</sub>(Out[B, D<sub>X</sub>])
+2.  Tmp[B, F<sub>YZ</sub>] {U<sub>X</sub>} = In[B, D<sub>X</sub>] \*<sub>D</sub> W<sub>in</sub>[D<sub>X</sub>, F<sub>YZ</sub>]
+3.  Tmp[B, F<sub>YZ</sub>] = **AllReduce**<sub>X</sub>(Tmp[B, F<sub>YZ</sub>] {U<sub>X</sub>})
+4.  Out[B, D<sub>X</sub>] {U<sub>YZ</sub>} = Tmp[B, F<sub>YZ</sub>] \*<sub>F</sub> W<sub>out</sub>[F<sub>YZ</sub>, D<sub>X</sub>]
+5.  Out[B, D<sub>XYZ</sub>] = **ReduceScatter**<sub>YZ</sub>(Out[B, D<sub>X</sub>] {U<sub>YZ</sub>})
 </div>
 
 你的目标是推导出该算法的 $T_\text{math}$ 和 $T_\text{comms}$，并找出它何时会优于传统的 3D 模型分片？
@@ -585,7 +597,7 @@ T_\text{2D comms} = \frac{2BD}{2X \cdot W_\text{ici}} + \frac{4BF}{YZ \cdot W_\t
 
 $$T_\text{2D comms} = \frac{2B}{W_\text{ici}} \left(\frac{D}{X} + \frac{8D}{YZ}\right) = \frac{\sqrt{128} BD}{\sqrt{N} \cdot W_\text{ici}} \approx \frac{11.3 BD}{\sqrt{N} \cdot W_\text{ici}}$$
 
-首先，从上面抄过来，普通的 1D 模型并行会有 $T_\text{model parallel comms} = 4BD / (3 \cdot W_\text{ici})$，那么新的通信何时更小？我们有
+首先，由上文可知，普通的 1D 模型并行会有 $T_\text{model parallel comms} = 4BD / (3 \cdot W_\text{ici})$，那么新的通信何时更小？我们有
 
 $$\begin{align*}
 T_\text{model parallel comms} > T_\text{2D comms} \iff \frac{4BD}{3 \cdot W_\text{ici}} > \frac{\sqrt{128} BD}{\sqrt{N} \cdot W_\text{ici}} \\
@@ -596,7 +608,7 @@ T_\text{model parallel comms} > T_\text{2D comms} \iff \frac{4BD}{3 \cdot W_\tex
 
 $$N > 32 \cdot \left(\frac{F}{D}\right) \cdot \left(\frac{3}{4}\right)^2$$
 
-所以这说明，如果我们有超过 72 颗芯片，用这个新方案就更划算。现在这是个有点奇怪的结果，因为我们历史上发现自己在约 20 路张量并行时就 ICI 受限了。但在这里，即便我们通信受限，我们的总通信量仍随芯片总数的增加而持续下降！这告诉我们，我们可以持续增加芯片、增大批大小、做更多参数扩展，并看到延迟下降。
+所以这说明，如果我们有超过 72 颗芯片，用这个新方案就更划算。诚然，这是个有点奇怪的结果，因为我们历史上发现自己在约 20 路张量并行时就 ICI 受限了。但在这里，即便我们通信受限，我们的总通信量仍随芯片总数的增加而持续下降！这告诉我们，我们可以持续增加芯片、增大批大小、做更多参数扩展，并看到延迟下降。
 
 {% enddetails %}
 
@@ -631,7 +643,7 @@ $$N > 32 \cdot \left(\frac{F}{D}\right) \cdot \left(\frac{3}{4}\right)^2$$
 1. 1D 权重静止分片，即纯 Megatron 分片，其中激活值在 AllGather 之后完全复制，权重沿隐藏 F 维度完全分片。
 2. 2D 权重静止分片，其中权重沿隐藏 F 维度和归约 E 维度都做了分片，激活值沿 E 维度分片。我们在第一层之前沿 (yz) 轴做 AllGather，然后沿 (x) 轴做 ReduceScatter。
 
-对于注意力层，对于较少的芯片数，Megatron 风格分片也相对简单。然而，Megatron 是沿 $$n_\text{heads}$$ 维度进行的，这给可能的分片量设了上限。把 2D 分片改造用于注意力（不是对隐藏维度分片，而是对 $$n_\text{heads}$$ 维度分片），我们便获得了进一步扩展的能力。
+对于注意力层，在芯片数较少时，Megatron 风格分片也相对简单。然而，Megatron 是沿 $$n_\text{heads}$$ 维度进行的，这给可能的分片量设了上限。把 2D 分片改造用于注意力（不是对隐藏维度分片，而是对 $$n_\text{heads}$$ 维度分片），我们便获得了进一步扩展的能力。
 
 ### 附录 C：延迟受限的通信 {#附录-c-延迟受限的通信}
 
@@ -645,9 +657,9 @@ $$T_{total} = \max\left(\frac{T_{min} \cdot |X|}{2}, \frac{B}{W_{ICI}}\right)$$
 
 由于在延迟优化的推理中移动的数据量相对较少，激活值上的集合通信常常受限于延迟项（尤其在小批大小下）。我们可以通过数完成前需要多少跳（hop）来相当容易地可视化这个延迟。
 
-在 TPU 上，如果通信中与张量大小相关的部分小于每跳 1 微秒（一跳是相邻两台设备之间的通信），我们就可能被实际分派集合通信的固定开销所瓶颈。在 `4.5e10` 单向 ICI 带宽下，当 $(\text{bytes} / n_\text{shards}) / 4.5e10 < 1e-6$ 时，ICI 通信变成延迟受限。对于 8 路 Megatron 分片，这发生在 `buffer_size < 360kB` 时。**这在推理中其实不算那么小：** 在 int8 下，当 `BS=16`、`D=8192` 时，我们的激活值将占用 `16*8192=131kB`，所以我们已经延迟受限了。
+在 TPU 上，如果通信中与张量大小相关的部分小于每跳 1 微秒（一跳是相邻两台设备之间的通信），瓶颈就可能在于实际分派集合通信的固定开销。在 `4.5e10` 单向 ICI 带宽下，当 $(\text{bytes} / n_\text{shards}) / 4.5e10 < 1e-6$ 时，ICI 通信变成延迟受限。对于 8 路 Megatron 分片，这发生在 `buffer_size < 360kB` 时。**这在推理中其实不算那么小：** 在 int8 下，当 `BS=16`、`D=8192` 时，我们的激活值将占用 `16*8192=131kB`，所以我们已经延迟受限了。
 
-<p markdown=1 class="takeaway">**要点：** 当 $$\text{total bytes} < W_{ICI} \times 1e-6$$ 时，我们的通信变成延迟受限。例如，当沿 $$Y$$ 做模型并行时，我们在 int8 下当 $$Y > BD / 45,000$$ 时受限。</p>
+<p markdown=1 class="takeaway">**要点：** 当 $$\text{total bytes} < W_{ICI} \times 1e-6$$ 时，我们的通信变成延迟受限。例如，沿 $$Y$$ 做模型并行时，在 int8 下当 $$Y > BD / 45,000$$ 时受限。</p>
 
 这里可以与算力屋顶线做一个类比——我们都在承受某些小操作的固定成本（通信的延迟、matmul 的内存带宽）。
 
@@ -667,9 +679,9 @@ $$T_{total} = \max\left(\frac{T_{min} \cdot |X|}{2}, \frac{B}{W_{ICI}}\right)$$
 
 **为什么这是延迟上的胜利？** 这个方案仍然要求我们对每个词元做相当于一次大模型 forward pass 的 FLOPs，但因为我们可以把一堆词元批处理到一起，我们可以在一次 forward pass 中做完所有这些 FLOPs，并利用我们*并非*算力受限这一事实，免费为更多词元打分。
 
-每个被接受的词元在平均意义上变得更贵（因为有些会被拒绝，而且我们得调用一个草稿模型），但我们从硬件中榨出了更多 FLOPs，而小模型很便宜，所以总体上我们赢了。我们还跨多个步共享 KV cache 加载，因此**推测解码对于长上下文也可以是一个吞吐量上的胜利**。因为一切都被大模型检验过，我们完全不改变采样分布（不过对于非贪心的情况，确切的轨迹会不同）。
+每个被接受的词元在平均意义上变得更贵（因为有些会被拒绝，而且我们得调用一个草稿模型），但我们从硬件中榨出了更多 FLOPs，而小模型很便宜，所以总体上仍占优。我们还跨多个步共享 KV cache 加载，因此**推测解码对于长上下文也可以是一个吞吐量上的胜利**。因为一切都被大模型检验过，我们完全不改变采样分布（不过对于非贪心的情况，确切的轨迹会不同）。
 
-传统上，推测解码依赖于存在一个与目标模型采样分布相近的小模型，例如 LLaMA-2 2B 对应 LLaMA-2 70B，而这种模型常常不存在。即便有，如果接受率很低，较小的草稿模型仍可能太贵。取而代之，把一个草稿器嵌入主模型内部会很有帮助，例如通过给基模型的某后层加一个专用的草稿头<d-cite key="eagle"></d-cite><d-cite key="medusa"></d-cite><d-cite key="DeepSeek3"></d-cite>。因为这个头与主模型共享大部分参数，它运行更快，并且更紧密地匹配采样分布。
+传统上，推测解码依赖于存在一个与目标模型采样分布相近的小模型，例如 LLaMA-2 2B 对应 LLaMA-2 70B，而这种模型常常不存在。即便有，如果接受率很低，较小的草稿模型仍可能太贵。相反，把一个草稿器嵌入主模型内部会很有帮助，例如通过给基模型的某后层加一个专用的草稿头<d-cite key="eagle"></d-cite><d-cite key="medusa"></d-cite><d-cite key="DeepSeek3"></d-cite>。因为这个头与主模型共享大部分参数，它运行更快，并且更紧密地匹配采样分布。
 
 对于普通的自回归采样，词元/秒与步时间相同。我们仍然受制于此处算术强度一节给出的理论最小步时间（事实上，推测采样的步时间通常比普通自回归采样慢不少，但因为平均每一步产出多于 1 个词元，我们能得到好得多的词元/秒）。
 
@@ -677,6 +689,6 @@ $$T_{total} = \max\left(\frac{T_{min} \cdot |X|}{2}, \frac{B}{W_{ICI}}\right)$$
 
 **这对非贪心解码如何工作？** 这稍微复杂一些，但本质上归结为受 Metropolis-Hastings 启发的算法，其中有 $$P_{\text{draft model}}(\text{chosen token})$$ 和 $$P_{\text{target model}}(\text{chosen token})$$ 由 logits 导出，并且如果这两个概率之比小于某个阈值，就以一定概率拒绝所选词元。
 
-这两篇 [论文](https://arxiv.org/abs/2211.17192) [论文](https://arxiv.org/abs/2302.01318) 同时推导了这一点，并给出了它在实践中如何运作的好例子。
+这两篇 [论文](https://arxiv.org/abs/2211.17192) 和 [论文](https://arxiv.org/abs/2302.01318) 同时推导了这一点，并给出了它在实践中如何运作的好例子。
 
-<p markdown=1 class="takeaway">**要点：** 推测采样是又一根强大的杠杆，用以用吞吐量换取更好的每词元延迟。然而，在批大小受限的场景（例如较小的硬件占用或较大的 KV cache）中，它会变成双赢。</p>
+<p markdown=1 class="takeaway">**要点：** 推测采样是又一根强大的杠杆，用以将吞吐量换取为更好的每词元延迟。然而，在批大小受限的场景（例如较小的硬件占用或较大的 KV cache）中，它会变成双赢。</p>
